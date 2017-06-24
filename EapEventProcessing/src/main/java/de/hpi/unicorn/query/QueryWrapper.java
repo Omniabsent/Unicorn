@@ -30,7 +30,6 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.Transient;
 
-import de.hpi.unicorn.notification.RestNotificationRule;
 import org.apache.xerces.dom.ElementImpl;
 import org.w3c.dom.Node;
 
@@ -43,6 +42,7 @@ import com.espertech.esper.client.soda.EPStatementObjectModel;
 import de.hpi.unicorn.esper.StreamProcessingAdapter;
 import de.hpi.unicorn.monitoring.QueryMonitoringPoint;
 import de.hpi.unicorn.notification.NotificationRuleForQuery;
+import de.hpi.unicorn.notification.RestNotificationRule;
 import de.hpi.unicorn.persistence.Persistable;
 import de.hpi.unicorn.persistence.Persistor;
 
@@ -95,7 +95,8 @@ public class QueryWrapper extends Persistable {
 		this.setQuery(queryString);
 	}
 
-	public QueryWrapper(final String title, final String queryString, final QueryTypeEnum type, final Timestamp timestamp) {
+	public QueryWrapper(final String title, final String queryString, final QueryTypeEnum type,
+			final Timestamp timestamp) {
 		this(title, queryString, type);
 		this.timestamp = timestamp;
 	}
@@ -110,7 +111,8 @@ public class QueryWrapper extends Persistable {
 	 */
 	public static QueryWrapper findQueryByTitle(final String title) {
 		final EntityManager em = Persistor.getEntityManager();
-		final Query query = em.createNativeQuery("SELECT * FROM QueryWrapper WHERE Title = '" + title + "'", QueryWrapper.class);
+		final Query query = em.createNativeQuery("SELECT * FROM QueryWrapper WHERE Title = '" + title + "'",
+				QueryWrapper.class);
 		try {
 			return (QueryWrapper) query.getResultList().get(0);
 		} catch (final Exception e) {
@@ -124,7 +126,8 @@ public class QueryWrapper extends Persistable {
 	 * @return
 	 */
 	public static List<QueryWrapper> getAllLiveQueries() {
-		final Query dbQuery = Persistor.getEntityManager().createNativeQuery("SELECT * FROM QueryWrapper WHERE Type='LIVE'", QueryWrapper.class);
+		final Query dbQuery = Persistor.getEntityManager()
+				.createNativeQuery("SELECT * FROM QueryWrapper WHERE Type='LIVE'", QueryWrapper.class);
 		return dbQuery.getResultList();
 		// List<QueryWrapper> liveQueryList = new ArrayList<QueryWrapper>();
 		// List<QueryWrapper> queryResult = dbQuery.getResultList();
@@ -174,7 +177,8 @@ public class QueryWrapper extends Persistable {
 		final EntityManager em = Persistor.getEntityManager();
 		// System.out.println("select TITLE from QueryWrapper where type = '"+
 		// QueryTypeEnum.ONDEMAND +"'");
-		final Query query = em.createNativeQuery("select TITLE from QueryWrapper where type = '" + QueryTypeEnum.ONDEMAND + "'");
+		final Query query = em
+				.createNativeQuery("select TITLE from QueryWrapper where type = '" + QueryTypeEnum.ONDEMAND + "'");
 		return query.getResultList();
 	}
 
@@ -405,14 +409,18 @@ public class QueryWrapper extends Persistable {
 	@SuppressWarnings("unchecked")
 	public List<NotificationRuleForQuery> getNotificationRulesForQuery() {
 		final EntityManager em = Persistor.getEntityManager();
-		final Query query = em.createNativeQuery("select * from NotificationRule WHERE Disc = 'Q' AND QUERY_ID = '" + this.getID() + "'", NotificationRuleForQuery.class);
+		final Query query = em.createNativeQuery(
+				"select * from NotificationRule WHERE Disc = 'Q' AND QUERY_ID = '" + this.getID() + "'",
+				NotificationRuleForQuery.class);
 		return query.getResultList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<RestNotificationRule> getRestNotificationRules() {
 		final EntityManager em = Persistor.getEntityManager();
-		final Query query = em.createNativeQuery("select * from NotificationRule WHERE Disc = 'R' AND QUERY_ID = '" + this.getID() + "'", RestNotificationRule.class);
+		final Query query = em.createNativeQuery(
+				"select * from NotificationRule WHERE Disc = 'R' AND QUERY_ID = '" + this.getID() + "'",
+				RestNotificationRule.class);
 		return query.getResultList();
 	}
 

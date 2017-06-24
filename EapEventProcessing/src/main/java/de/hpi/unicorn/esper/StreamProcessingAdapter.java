@@ -136,27 +136,41 @@ public class StreamProcessingAdapter implements Serializable {
 	 * functions to be used in EPL queries are registered.
 	 */
 	private void initializeEsper() {
-		this.esperServiceProvider = (EPServiceProviderSPI) EPServiceProviderManager.getProvider(EPServiceProviderSPI.DEFAULT_ENGINE_URI);
+		this.esperServiceProvider = (EPServiceProviderSPI) EPServiceProviderManager
+				.getProvider(EPServiceProviderSPI.DEFAULT_ENGINE_URI);
 		this.esperServiceProvider.initialize();
 
 		this.esperConfiguration = this.esperServiceProvider.getEPAdministrator().getConfiguration();
-		this.esperConfiguration.addPlugInSingleRowFunction("currentDate", "de.hpi.unicorn.esper.EapUtils", "currentDate");
+		this.esperConfiguration.addPlugInSingleRowFunction("currentDate", "de.hpi.unicorn.esper.EapUtils",
+				"currentDate");
 		this.esperConfiguration.addPlugInSingleRowFunction("formatDate", "de.hpi.unicorn.esper.EapUtils", "formatDate");
 		this.esperConfiguration.addPlugInSingleRowFunction("parseDate", "de.hpi.unicorn.esper.EapUtils", "parseDate");
-		this.esperConfiguration.addPlugInSingleRowFunction("getIntersection", "de.hpi.unicorn.esper.EapUtils", "getIntersection");
-		this.esperConfiguration.addPlugInSingleRowFunction("isIntersectionNotEmpty", "de.hpi.unicorn.esper.EapUtils", "isIntersectionNotEmpty");
-		this.esperConfiguration.addPlugInSingleRowFunction("integerValueFromEvent", "de.hpi.unicorn.esper.EapUtils", "integerValueFromEvent");
-		this.esperConfiguration.addPlugInSingleRowFunction("doubleValueFromEvent", "de.hpi.unicorn.esper.EapUtils", "doubleValueFromEvent");
-		this.esperConfiguration.addPlugInSingleRowFunction("stringValueFromEvent", "de.hpi.unicorn.esper.EapUtils", "stringValueFromEvent");
-		this.esperConfiguration.addPlugInSingleRowFunction("dateValueFromEvent", "de.hpi.unicorn.esper.EapUtils", "dateValueFromEvent");
-		this.esperConfiguration.addPlugInSingleRowFunction("sumFromEventList", "de.hpi.unicorn.esper.EapUtils", "sumFromEventList");
-		this.esperConfiguration.addPlugInSingleRowFunction("isSubstringOf", "de.hpi.unicorn.esper.EapUtils", "isSubstringOf");
+		this.esperConfiguration.addPlugInSingleRowFunction("getIntersection", "de.hpi.unicorn.esper.EapUtils",
+				"getIntersection");
+		this.esperConfiguration.addPlugInSingleRowFunction("isIntersectionNotEmpty", "de.hpi.unicorn.esper.EapUtils",
+				"isIntersectionNotEmpty");
+		this.esperConfiguration.addPlugInSingleRowFunction("integerValueFromEvent", "de.hpi.unicorn.esper.EapUtils",
+				"integerValueFromEvent");
+		this.esperConfiguration.addPlugInSingleRowFunction("doubleValueFromEvent", "de.hpi.unicorn.esper.EapUtils",
+				"doubleValueFromEvent");
+		this.esperConfiguration.addPlugInSingleRowFunction("stringValueFromEvent", "de.hpi.unicorn.esper.EapUtils",
+				"stringValueFromEvent");
+		this.esperConfiguration.addPlugInSingleRowFunction("dateValueFromEvent", "de.hpi.unicorn.esper.EapUtils",
+				"dateValueFromEvent");
+		this.esperConfiguration.addPlugInSingleRowFunction("sumFromEventList", "de.hpi.unicorn.esper.EapUtils",
+				"sumFromEventList");
+		this.esperConfiguration.addPlugInSingleRowFunction("isSubstringOf", "de.hpi.unicorn.esper.EapUtils",
+				"isSubstringOf");
 		this.esperConfiguration.addPlugInSingleRowFunction("distance", "de.hpi.unicorn.utils.GeoUtils", "distance");
 		this.esperConfiguration.addPlugInSingleRowFunction("inBetween", "de.hpi.unicorn.utils.GeoUtils", "inBetween");
-		this.esperConfiguration.addPlugInSingleRowFunction("deadline", "de.hpi.unicorn.application.TransportNodeLookup", "getDeadline");
-		this.esperConfiguration.addPlugInSingleRowFunction("legLength", "de.hpi.unicorn.application.TransportNodeLookup", "getLegLength");
-		this.esperConfiguration.addPlugInSingleRowFunction("getOperator", "de.hpi.unicorn.application.TransportNodeLookup", "getOperatorForRoute");
-		this.esperConfiguration.addPlugInSingleRowFunction("isFinalNode", "de.hpi.unicorn.application.TransportNodeLookup", "isFinalNode");
+		this.esperConfiguration.addPlugInSingleRowFunction("deadline", "de.hpi.unicorn.application.TransportNodeLookup",
+				"getDeadline");
+		this.esperConfiguration.addPlugInSingleRowFunction("legLength",
+				"de.hpi.unicorn.application.TransportNodeLookup", "getLegLength");
+		this.esperConfiguration.addPlugInSingleRowFunction("getOperator",
+				"de.hpi.unicorn.application.TransportNodeLookup", "getOperatorForRoute");
+		this.esperConfiguration.addPlugInSingleRowFunction("isFinalNode",
+				"de.hpi.unicorn.application.TransportNodeLookup", "isFinalNode");
 
 		this.esperRuntime = this.esperServiceProvider.getEPRuntime();
 		// esperRuntime.sendEvent(new
@@ -189,9 +203,11 @@ public class StreamProcessingAdapter implements Serializable {
 		for (final TransformationRule rule : TransformationRule.findAll()) {
 			if (!this.statementNames.keySet().contains(TransformationRuleLogic.generateStatementName(rule))) {
 				this.addTransformationRule(rule);
-				StreamProcessingAdapter.logger.info("Registered transformation rule '" + rule.getTitle() + "' for event type '" + rule.getEventType().getTypeName() + "' from database.");
+				StreamProcessingAdapter.logger.info("Registered transformation rule '" + rule.getTitle()
+						+ "' for event type '" + rule.getEventType().getTypeName() + "' from database.");
 			} else {
-				StreamProcessingAdapter.logger.info("Transformation rule " + rule.getTitle() + " already registered in Esper.");
+				StreamProcessingAdapter.logger
+						.info("Transformation rule " + rule.getTitle() + " already registered in Esper.");
 			}
 		}
 	}
@@ -277,50 +293,50 @@ public class StreamProcessingAdapter implements Serializable {
 			while (reader.hasNext()) {
 				int event = reader.next();
 				switch (event) {
-					case XMLStreamConstants.START_ELEMENT:
-						tag = reader.getLocalName();
-						if ("transformationRule".equals(tag)) {
-							rule = new TransformationRule();
-						} else if ("ruleName".equals(tag)) {
-							rule.setTitle(reader.getElementText());
-						} else if ("rule".equals(tag)) {
-							rule.setQuery(reader.getElementText());
-						} else if ("incomingEventType".equals(tag)) {
-							incomingTypeNames.add(reader.getElementText());
-						} else if ("eventType".equals(tag)) {
-							String typeName = reader.getElementText();
-							rule.setEventType(EapEventType.findByTypeName(typeName));
-						}
-						break;
-					case XMLStreamConstants.END_ELEMENT:
-						tag = reader.getLocalName();
-						if ("incomingEventTypes".equals(tag)) {
-							for (String typeName : incomingTypeNames) {
-								EapEventType type;
-								if ((type = EapEventType.findByTypeName(typeName)) != null) {
-									incomingTypes.add(type);
-								}
+				case XMLStreamConstants.START_ELEMENT:
+					tag = reader.getLocalName();
+					if ("transformationRule".equals(tag)) {
+						rule = new TransformationRule();
+					} else if ("ruleName".equals(tag)) {
+						rule.setTitle(reader.getElementText());
+					} else if ("rule".equals(tag)) {
+						rule.setQuery(reader.getElementText());
+					} else if ("incomingEventType".equals(tag)) {
+						incomingTypeNames.add(reader.getElementText());
+					} else if ("eventType".equals(tag)) {
+						String typeName = reader.getElementText();
+						rule.setEventType(EapEventType.findByTypeName(typeName));
+					}
+					break;
+				case XMLStreamConstants.END_ELEMENT:
+					tag = reader.getLocalName();
+					if ("incomingEventTypes".equals(tag)) {
+						for (String typeName : incomingTypeNames) {
+							EapEventType type;
+							if ((type = EapEventType.findByTypeName(typeName)) != null) {
+								incomingTypes.add(type);
 							}
-							rule.setEventTypesOfIncomingEvents(incomingTypes);
-							incomingTypeNames.clear();
-							incomingTypes.clear();
-						} else if ("transformationRule".equals(tag)) { // rule
-							// complete
-							if (!statementNames.keySet().contains(TransformationRuleLogic.generateStatementName(rule))) {
-								// No statement with the same canonical name exists
-								addTransformationRule(rule);
+						}
+						rule.setEventTypesOfIncomingEvents(incomingTypes);
+						incomingTypeNames.clear();
+						incomingTypes.clear();
+					} else if ("transformationRule".equals(tag)) { // rule
+						// complete
+						if (!statementNames.keySet().contains(TransformationRuleLogic.generateStatementName(rule))) {
+							// No statement with the same canonical name exists
+							addTransformationRule(rule);
 							/*
 							 * cannot use the Broker to register the rule as it
 							 * would trigger the initialization of
 							 * StreamProcessAdapter (which we are performing
 							 * right now)
 							 */
-								rule.save();
-							}
+							rule.save();
 						}
-						break;
-					default:
-						break;
+					}
+					break;
+				default:
+					break;
 				}
 			}
 		} catch (XMLStreamException e) {
@@ -349,8 +365,8 @@ public class StreamProcessingAdapter implements Serializable {
 	}
 
 	/**
-	 * returns information of eventtyp from {@link
-	 * EventType.getPropertyType(String)}
+	 * returns information of eventtyp from
+	 * {@link EventType.getPropertyType(String)}
 	 */
 	public Class getEventTypeInfo(final EapEventType eventType, final String attribute) {
 		final EventType type = this.esperConfiguration.getEventType(eventType.getTypeName());
@@ -408,11 +424,13 @@ public class StreamProcessingAdapter implements Serializable {
 		final List<TransformationRule> transformationRules = TransformationRule.getTransformationRulesForEvent(event);
 		final long semEnd = System.currentTimeMillis();
 
-		StreamProcessingAdapter.logger.debug(String.format("Semantic processing of event took %.2f seconds", (double) (semEnd - semStart) / 1000));
+		StreamProcessingAdapter.logger.debug(
+				String.format("Semantic processing of event took %.2f seconds", (double) (semEnd - semStart) / 1000));
 		final long xmlStart = System.currentTimeMillis();
 		final Node node = XMLUtils.eventToNode(event);
 		final long xmlEnd = System.currentTimeMillis();
-		StreamProcessingAdapter.logger.debug(String.format("Conversion of event to node took %.2f seconds", (double) (xmlEnd - xmlStart) / 1000));
+		StreamProcessingAdapter.logger.debug(
+				String.format("Conversion of event to node took %.2f seconds", (double) (xmlEnd - xmlStart) / 1000));
 		// XMLUtils.printDocument((Document) node);
 		if (node == null) {
 			System.err.println("Event was not parseable!");
@@ -422,15 +440,14 @@ public class StreamProcessingAdapter implements Serializable {
 		// CurrentTimeEvent(timeInMilliseconds));
 		final long esperStart = System.currentTimeMillis();
 
-
 		/**
 		 * THIS DOES THE ACTUAL TRIGGERING STUFF
 		 */
 		this.esperRuntime.sendEvent(node);
 
-
 		final long esperEnd = System.currentTimeMillis();
-		StreamProcessingAdapter.logger.debug(String.format("Esper processing of event took %.2f seconds", (double) (esperEnd - esperStart) / 1000));
+		StreamProcessingAdapter.logger.debug(
+				String.format("Esper processing of event took %.2f seconds", (double) (esperEnd - esperStart) / 1000));
 		// reactivate Esper statements
 		for (final EPStatement statement : statementsWithStoppedListeners) {
 			statement.start();
@@ -453,8 +470,10 @@ public class StreamProcessingAdapter implements Serializable {
 			if (this.hasWindow(eventType.getTypeName() + "Window")) {
 				return;
 			}
-			this.esperServiceProvider.getEPAdministrator().createEPL("CREATE WINDOW " + eventType.getTypeName() + "Window.win:keepall() AS " + eventType.getTypeName());
-			this.esperServiceProvider.getEPAdministrator().createEPL("INSERT INTO " + eventType.getTypeName() + "Window SELECT * FROM " + eventType.getTypeName());
+			this.esperServiceProvider.getEPAdministrator().createEPL(
+					"CREATE WINDOW " + eventType.getTypeName() + "Window.win:keepall() AS " + eventType.getTypeName());
+			this.esperServiceProvider.getEPAdministrator().createEPL(
+					"INSERT INTO " + eventType.getTypeName() + "Window SELECT * FROM " + eventType.getTypeName());
 		}
 	}
 
@@ -466,42 +485,49 @@ public class StreamProcessingAdapter implements Serializable {
 	 *
 	 * @param eventType
 	 * @return the {@link ConfigurationEventTypeXMLDOM} required by the Esper
-	 * engine
+	 *         engine
 	 */
 	private ConfigurationEventTypeXMLDOM eventTypeToXMLDom(final EapEventType eventType) {
 		final AttributeTypeTree tree = eventType.getValueTypeTree();
 		final ConfigurationEventTypeXMLDOM dom = new ConfigurationEventTypeXMLDOM();
 		dom.setRootElementName(eventType.getTypeName());
-		dom.addXPathProperty(eventType.getTimestampName(), "/" + eventType.getTypeName() + "/" + eventType.getTimestampName(), XPathConstants.STRING, "java.util.Date");
+		dom.addXPathProperty(eventType.getTimestampName(),
+				"/" + eventType.getTypeName() + "/" + eventType.getTimestampName(), XPathConstants.STRING,
+				"java.util.Date");
 		dom.setStartTimestampPropertyName(eventType.getTimestampName());
-		dom.addXPathProperty("ProcessInstances", "/" + eventType.getTypeName() + "/ProcessInstances", XPathConstants.STRING, "java.util.List");
+		dom.addXPathProperty("ProcessInstances", "/" + eventType.getTypeName() + "/ProcessInstances",
+				XPathConstants.STRING, "java.util.List");
 
 		for (final TypeTreeNode element : tree.getAttributes()) {
 			final AttributeTypeEnum attType = element.getType();
 			// System.out.println(element.toString());
 			if (attType != null) {
 				switch (attType) {
-					case DATE:
-						dom.addXPathProperty(element.getAttributeExpression(), "/" + eventType.getTypeName() + element.getXPath(), XPathConstants.STRING, "java.util.Date");
-						break;
-					// case DATE :
-					// dom.addXPathProperty(element.getAttributeExpression(), "/" +
-					// eventType.getTypeName() + element.getXPath(),
-					// DatatypeConstants.DATETIME, "java.util.Date"); break;
-					case FLOAT:
-						dom.addXPathProperty(element.getAttributeExpression(), "/" + eventType.getTypeName() + element.getXPath(), XPathConstants.NUMBER);
-						break;
-					case INTEGER:
-						dom.addXPathProperty(element.getAttributeExpression(), "/" + eventType.getTypeName() + element.getXPath(), XPathConstants.NUMBER, "long");
-						break;
-					default:
-						dom.addXPathProperty(element.getAttributeExpression(), "/" + eventType.getTypeName() + element.getXPath(), XPathConstants.STRING);
+				case DATE:
+					dom.addXPathProperty(element.getAttributeExpression(),
+							"/" + eventType.getTypeName() + element.getXPath(), XPathConstants.STRING,
+							"java.util.Date");
+					break;
+				// case DATE :
+				// dom.addXPathProperty(element.getAttributeExpression(), "/" +
+				// eventType.getTypeName() + element.getXPath(),
+				// DatatypeConstants.DATETIME, "java.util.Date"); break;
+				case FLOAT:
+					dom.addXPathProperty(element.getAttributeExpression(),
+							"/" + eventType.getTypeName() + element.getXPath(), XPathConstants.NUMBER);
+					break;
+				case INTEGER:
+					dom.addXPathProperty(element.getAttributeExpression(),
+							"/" + eventType.getTypeName() + element.getXPath(), XPathConstants.NUMBER, "long");
+					break;
+				default:
+					dom.addXPathProperty(element.getAttributeExpression(),
+							"/" + eventType.getTypeName() + element.getXPath(), XPathConstants.STRING);
 				}
 			}
 		}
 		return dom;
 	}
-
 
 	/**
 	 * deletes given events from event window
@@ -524,24 +550,28 @@ public class StreamProcessingAdapter implements Serializable {
 		final StringBuffer sb = new StringBuffer();
 		if (EapConfiguration.supportingOnDemandQueries) {
 			sb.append("DELETE FROM " + event.getEventType().getTypeName() + "Window WHERE ");
-			sb.append("(" + event.getEventType().getTimestampName() + ".getTime() = " + event.getTimestamp().getTime() + ")");
+			sb.append("(" + event.getEventType().getTimestampName() + ".getTime() = " + event.getTimestamp().getTime()
+					+ ")");
 			final Iterator<String> iterator = event.getValues().keySet().iterator();
 			while (iterator.hasNext()) {
 				final String key = iterator.next();
 				final Serializable value = event.getValues().get(key);
-				if (event.getEventType().getValueTypeTree().getAttributeByExpression(key).getType() == AttributeTypeEnum.STRING) {
+				if (event.getEventType().getValueTypeTree().getAttributeByExpression(key)
+						.getType() == AttributeTypeEnum.STRING) {
 					String stringValue = value.toString();
 					if (stringValue.contains("\'")) {
 						stringValue = stringValue.replaceAll("\'", "\\\\\\\\\'");
 					}
 					sb.append(" AND (" + key + " = '" + stringValue + "')");
-				} else if (event.getEventType().getValueTypeTree().getAttributeByExpression(key).getType() == AttributeTypeEnum.DATE) {
+				} else if (event.getEventType().getValueTypeTree().getAttributeByExpression(key)
+						.getType() == AttributeTypeEnum.DATE) {
 					sb.append(" AND (" + key + ".getTime() = " + ((Date) value).getTime() + ")");
 				} else {
 					sb.append(" AND (" + key + " = " + value + ")");
 				}
 			}
-			final EPStatementObjectModel statement = this.esperServiceProvider.getEPAdministrator().compileEPL(sb.toString());
+			final EPStatementObjectModel statement = this.esperServiceProvider.getEPAdministrator()
+					.compileEPL(sb.toString());
 			this.esperRuntime.executeQuery(statement);
 		}
 	}
@@ -554,7 +584,8 @@ public class StreamProcessingAdapter implements Serializable {
 	 */
 	public void removeEventType(final EapEventType eventType) {
 		// System.out.println(esperConfiguration.getEventTypeNameUsedBy(eventType.getTypeName()));
-		final Set<String> names = new HashSet<String>(this.esperConfiguration.getEventTypeNameUsedBy(eventType.getTypeName()));
+		final Set<String> names = new HashSet<String>(
+				this.esperConfiguration.getEventTypeNameUsedBy(eventType.getTypeName()));
 		for (final String statementName : names) {
 			final EPStatement statement = this.getStatement(statementName);
 			if (statement != null) {
@@ -570,7 +601,8 @@ public class StreamProcessingAdapter implements Serializable {
 					final TransformationRule rule = (TransformationRule) ruleOrQuery;
 					Broker.getInstance().remove(rule);
 				} else {
-					System.err.println("WARNING - Parent of statement '" + statementName + "' is neither transformation rule nor live query.");
+					System.err.println("WARNING - Parent of statement '" + statementName
+							+ "' is neither transformation rule nor live query.");
 				}
 				this.statementNames.remove(statementName);
 			}
@@ -583,12 +615,13 @@ public class StreamProcessingAdapter implements Serializable {
 	 *
 	 * @param liveQuery
 	 * @return Listener which will get notifications if live-query gets
-	 * triggered
+	 *         triggered
 	 */
 	public LiveQueryListener addLiveQuery(final QueryWrapper liveQuery) throws EPException {
 		final String statementName = ++this.statementID + "_" + liveQuery.getTitle();
 		liveQuery.setStatementName(statementName);
-		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator().createEPL(liveQuery.getEsperQuery(), statementName);
+		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator()
+				.createEPL(liveQuery.getEsperQuery(), statementName);
 		final LiveQueryListener listener = new LiveQueryListener(liveQuery);
 		newStatement.addListener(listener);
 		this.statementNames.put(statementName, liveQuery);
@@ -596,7 +629,8 @@ public class StreamProcessingAdapter implements Serializable {
 	}
 
 	public PatternQueryListener addPatternQuery(final PatternQuery patternQuery) throws EPException {
-		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator().createEPL(patternQuery.getEsperQuery());
+		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator()
+				.createEPL(patternQuery.getEsperQuery());
 		final LiveQueryListener listener = new PatternQueryListener(patternQuery);
 		newStatement.addListener(listener);
 		patternQuery.setEPStatement(newStatement);
@@ -607,7 +641,8 @@ public class StreamProcessingAdapter implements Serializable {
 		// Erstes altes Statement löschen
 		this.esperServiceProvider.getEPAdministrator().getStatement(patternQuery.getEPStatement().getName()).destroy();
 
-		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator().createEPL(patternQuery.getEsperQuery());
+		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator()
+				.createEPL(patternQuery.getEsperQuery());
 		newStatement.addListener(patternQuery.getListener());
 		patternQuery.setEPStatement(newStatement);
 		return patternQuery.getListener();
@@ -676,9 +711,10 @@ public class StreamProcessingAdapter implements Serializable {
 	 * statement of that name has not been created, or if the statement by that
 	 * name has been destroyed.
 	 *
-	 * @param name is the statement name to return the statement for
+	 * @param name
+	 *            is the statement name to return the statement for
 	 * @return statement for the given name, or null if no such started or
-	 * stopped statement exists
+	 *         stopped statement exists
 	 */
 	public EPStatement getStatement(final String name) {
 		return this.getEsperAdministrator().getStatement(name);
@@ -694,7 +730,8 @@ public class StreamProcessingAdapter implements Serializable {
 	 * @param transformationRule
 	 */
 	public void addTransformationRule(final TransformationRule transformationRule) {
-		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator().createEPL(transformationRule.getEsperQuery(), TransformationRuleLogic.generateStatementName(transformationRule));
+		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator().createEPL(
+				transformationRule.getEsperQuery(), TransformationRuleLogic.generateStatementName(transformationRule));
 		final TransformationListener listener = new TransformationListener(transformationRule.getEventType());
 		newStatement.addListener(listener);
 		this.statementNames.put(newStatement.getName(), transformationRule);
@@ -708,7 +745,8 @@ public class StreamProcessingAdapter implements Serializable {
 	 * @param transformationRule
 	 */
 	public void removeTransformationRule(final TransformationRule transformationRule) {
-		final EPStatement statement = this.getStatement(TransformationRuleLogic.generateStatementName(transformationRule));
+		final EPStatement statement = this
+				.getStatement(TransformationRuleLogic.generateStatementName(transformationRule));
 		if (statement != null) {
 			statement.removeAllListeners();
 			statement.destroy();

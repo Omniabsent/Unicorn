@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import de.hpi.unicorn.notification.NotificationRuleForQuery;
-import de.hpi.unicorn.notification.RestNotificationRule;
 import org.apache.xerces.dom.ElementImpl;
 import org.w3c.dom.Node;
 
@@ -30,16 +28,19 @@ import de.hpi.unicorn.event.attribute.AttributeTypeEnum;
 import de.hpi.unicorn.event.attribute.AttributeTypeTree;
 import de.hpi.unicorn.event.attribute.TypeTreeNode;
 import de.hpi.unicorn.monitoring.QueryMonitoringPoint;
+import de.hpi.unicorn.notification.NotificationRuleForQuery;
+import de.hpi.unicorn.notification.RestNotificationRule;
 import de.hpi.unicorn.process.CorrelationProcessInstance;
 import de.hpi.unicorn.utils.SetUtil;
 
 /**
  * This class implements a listener for live queries (see {@link QueryWrapper}).
  * <p>
- * Instances of this class are created by the {@link StreamProcessingAdapter} when adding
- * live queries via the {@code addLiveQuery(query)} method. The listener is then registered
- * in Esper as listener for the EPL statement that represents the query. The listener will
- * be triggered by Esper when the query matches.
+ * Instances of this class are created by the {@link StreamProcessingAdapter}
+ * when adding live queries via the {@code addLiveQuery(query)} method. The
+ * listener is then registered in Esper as listener for the EPL statement that
+ * represents the query. The listener will be triggered by Esper when the query
+ * matches.
  *
  * @author the Unicorn team
  */
@@ -60,13 +61,13 @@ public class LiveQueryListener implements UpdateListener {
 	}
 
 	/**
-	 * This method is called by Esper when the live query, this listener belongs to
-	 * is matched by one or several events. The events that matched the query are
-	 * passed as arrays of {@link EventBean}'s.
-	 * TODO: explain how newData and oldData differ
+	 * This method is called by Esper when the live query, this listener belongs
+	 * to is matched by one or several events. The events that matched the query
+	 * are passed as arrays of {@link EventBean}'s. TODO: explain how newData
+	 * and oldData differ
 	 * <p>
-	 * Unicorn only uses the first event that matches the query!
-	 * The match is logged, then notifications are produced and monitoring points are
+	 * Unicorn only uses the first event that matches the query! The match is
+	 * logged, then notifications are produced and monitoring points are
 	 * triggerd.
 	 */
 	@Override
@@ -139,14 +140,14 @@ public class LiveQueryListener implements UpdateListener {
 				Serializable value = tempValue;
 				if (dataType != null) {
 					switch (dataType) {
-						case FLOAT:
-							value = Double.parseDouble(tempValue);
-							break;
-						case INTEGER:
-							value = Long.parseLong(tempValue);
-							break;
-						default:
-							value = tempValue;
+					case FLOAT:
+						value = Double.parseDouble(tempValue);
+						break;
+					case INTEGER:
+						value = Long.parseLong(tempValue);
+						break;
+					default:
+						value = tempValue;
 					}
 				}
 				map.put(node.getNodeName(), value);
