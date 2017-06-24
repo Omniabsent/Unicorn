@@ -397,6 +397,10 @@ public class QueryWrapper extends Persistable {
 		return StreamProcessingAdapter.getInstance().addLiveQuery(this);
 	}
 
+	public LiveQueryListener addToEsperBuffered(String bufferId) throws EPException {
+		return StreamProcessingAdapter.getInstance().addBufferedLiveQuery(this, bufferId);
+	}
+
 	/**
 	 * checks the syntax of on-demand queries.
 	 *

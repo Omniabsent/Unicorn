@@ -47,10 +47,13 @@ import de.hpi.unicorn.event.EapEventType;
 import de.hpi.unicorn.event.attribute.AttributeTypeEnum;
 import de.hpi.unicorn.event.attribute.AttributeTypeTree;
 import de.hpi.unicorn.event.attribute.TypeTreeNode;
+import de.hpi.unicorn.eventbuffer.BufferManager;
+import de.hpi.unicorn.eventbuffer.EventBuffer;
 import de.hpi.unicorn.eventhandling.Broker;
 import de.hpi.unicorn.exception.UnparsableException;
 import de.hpi.unicorn.importer.FileUtils;
 import de.hpi.unicorn.importer.xml.XSDParser;
+import de.hpi.unicorn.query.BufferedLiveQueryListener;
 import de.hpi.unicorn.query.LiveQueryListener;
 import de.hpi.unicorn.query.PatternQuery;
 import de.hpi.unicorn.query.PatternQueryListener;
@@ -625,6 +628,24 @@ public class StreamProcessingAdapter implements Serializable {
 		final LiveQueryListener listener = new LiveQueryListener(liveQuery);
 		newStatement.addListener(listener);
 		this.statementNames.put(statementName, liveQuery);
+		return listener;
+	}
+
+	public BufferedLiveQueryListener addBufferedLiveQuery(final QueryWrapper liveQuery, String bufferId)
+			throws EPException {
+		// create and register buffer
+		EventBuffer buff = new EventBuffer(bufferId, liveQuery);
+		BufferManager.addBuffer(buff);
+
+		// register listener
+		final String statementName = ++this.statementID + "_" + liveQuery.getTitle();
+		liveQuery.setStatementName(statementName);
+		final EPStatement newStatement = this.esperServiceProvider.getEPAdministrator()
+				.createEPL(liveQuery.getEsperQuery(), statementName);
+		final BufferedLiveQueryListener listener = new BufferedLiveQueryListener(liveQuery);
+		newStatement.addListener(listener);
+		this.statementNames.put(statementName, liveQuery);
+
 		return listener;
 	}
 

@@ -107,6 +107,8 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 			return response.getStatus() == 200;
 		} catch (UnsupportedJsonTransformation e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			System.out.println("(RestNotificationRule) failed: " + e.getMessage());
 		}
 		return false;
 	}

@@ -204,6 +204,18 @@ public class EventProcessingPlatformWebservice {
 		return notificationRule.getUuid();
 	}
 
+	public RestNotificationRule addRestNotificationRecipient(QueryWrapper qw, String notificationPath) {
+		final RestNotificationRule notificationRule = new RestNotificationRule(qw, notificationPath);
+		notificationRule.save();
+		return notificationRule;
+	}
+
+	public void registerBufferedQueryForRest(final String queryString, String bufferId) throws EPException {
+		final QueryWrapper query = new QueryWrapper("Automatic", queryString, QueryTypeEnum.LIVE);
+		query.addToEsperBuffered(bufferId);
+		query.save();
+	}
+
 	/**
 	 * Unregisters the query and destroys the corresponding notification rule.
 	 * Also destroys the message queue, if one is used.

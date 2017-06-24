@@ -76,8 +76,8 @@ public class LiveQueryListener implements UpdateListener {
 		final Object eventObject = newData[0].getUnderlying();
 		String eventValues = new String();
 		if (eventObject instanceof ElementImpl) {
-			eventValues = this.convertEventToString((ElementImpl) newData[0].getUnderlying());
-			map = this.convertEventToMap((ElementImpl) newData[0].getUnderlying());
+			eventValues = convertEventToString((ElementImpl) newData[0].getUnderlying());
+			map = convertEventToMap((ElementImpl) newData[0].getUnderlying());
 		} else if (eventObject instanceof HashMap) {
 			map = (Map<Object, Serializable>) eventObject;
 			for (final Object value : map.values()) {
@@ -123,7 +123,7 @@ public class LiveQueryListener implements UpdateListener {
 		return buffer.toString();
 	}
 
-	private Map<Object, Serializable> convertEventToMap(final ElementImpl event) {
+	public static Map<Object, Serializable> convertEventToMap(final ElementImpl event) {
 		final EapEventType eventType = EapEventType.findByTypeName(event.getNodeName());
 		if (eventType == null) {
 			return new HashMap<Object, Serializable>();

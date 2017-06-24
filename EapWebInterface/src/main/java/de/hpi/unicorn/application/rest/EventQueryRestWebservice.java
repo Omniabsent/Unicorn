@@ -1,12 +1,32 @@
 package de.hpi.unicorn.application.rest;
 
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.apache.xerces.dom.ElementImpl;
+
 import com.espertech.esper.client.EPException;
+import com.espertech.esper.client.EventBean;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+
 import de.hpi.unicorn.EventProcessingPlatformWebservice;
+import de.hpi.unicorn.eventbuffer.BufferManager;
 import de.hpi.unicorn.notification.NotificationRule;
 import de.hpi.unicorn.notification.NotificationRuleForQuery;
 import de.hpi.unicorn.notification.RestNotificationRule;
+import de.hpi.unicorn.query.LiveQueryListener;
 import de.hpi.unicorn.query.QueryWrapper;
 
 /**
@@ -134,9 +154,72 @@ public class EventQueryRestWebservice {
 			EventQueryJsonForRest ele = gson.fromJson(queryJson, EventQueryJsonForRest.class);
 			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
 			String uuid = service.registerQueryForRest(ele.getQueryString(), ele.getNotificationPath());
+
 			return Response.ok(uuid).build();
 		} catch (EPException | JsonSyntaxException e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("Event Query could not be registered: " + e.getMessage()).type("text/plain").build();
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity("Event Query could not be registered: " + e.getMessage()).type("text/plain").build();
+		}
+	}
+
+	@POST
+	@Path("/EventBuffer")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
+	public Response createEventBuffer(String queryJson) {
+		// register query in esper without notificationPath
+		try {
+			Gson gson = new Gson();
+			CreateEventBufferCall callData = gson.fromJson(queryJson, CreateEventBufferCall.class);
+			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
+			String uuid = callData.bufferId;
+
+			System.out.println("The following query will be buffered: " + callData.query);
+			service.registerBufferedQueryForRest(callData.query, callData.bufferId);
+
+			return Response.ok(uuid).build();
+		} catch (EPException | JsonSyntaxException e) {
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity("Event Query could not be registered: " + e.getMessage()).type("text/plain").build();
+		}
+	}
+
+	@POST
+	@Path("/EventBuffer/{bufferId}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
+	public Response requestEvents(@PathParam("bufferId") String bufferId, String queryJson) {
+		try {
+			Gson gson = new Gson();
+			RequestEventsCall callData = gson.fromJson(queryJson, RequestEventsCall.class);
+
+			System.out.println(
+					"(RestAPI) delivering events from buffer " + bufferId + " to " + callData.notificationPath);
+
+			// register new recipient
+			// causes nullpointer if no buffer exists for bufferId
+			QueryWrapper qw = BufferManager.getEventBuffer(bufferId).getQuery();
+
+			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
+			RestNotificationRule rule = service.addRestNotificationRecipient(qw, callData.notificationPath);
+
+			// notify with events from buffer
+			EventBean[] latestEvent = BufferManager.getEventBuffer(bufferId).read();
+			if (latestEvent != null) {
+				Map<Object, Serializable> map = new HashMap<Object, Serializable>();
+				final Object eventObject = latestEvent[0].getUnderlying();
+				if (eventObject instanceof ElementImpl) {
+					map = LiveQueryListener.convertEventToMap((ElementImpl) latestEvent[0].getUnderlying());
+				} else if (eventObject instanceof HashMap) {
+					map = (Map<Object, Serializable>) eventObject;
+				}
+				rule.trigger(map);
+			}
+
+			return Response.ok().build();
+		} catch (EPException | JsonSyntaxException e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity("Request Events failed: " + e.getMessage())
+					.type("text/plain").build();
 		}
 	}
 
@@ -177,6 +260,14 @@ public class EventQueryRestWebservice {
 		public String getNotificationPath() {
 			return notificationPath;
 		}
+	}
+
+	private class CreateEventBufferCall {
+		public String query, bufferId;
+	}
+
+	private class RequestEventsCall {
+		public String notificationPath;
 	}
 
 }
