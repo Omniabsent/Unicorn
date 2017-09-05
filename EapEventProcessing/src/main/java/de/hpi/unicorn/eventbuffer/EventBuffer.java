@@ -17,6 +17,13 @@ public class EventBuffer {
 		query = qw;
 		this.bufferPolicies = bufferPolicies;
 		latestEvents = new LinkedList<EventBean[]>();
+
+		// set bufferPolicies to default if values are missing
+		if (this.bufferPolicies == null) {
+			this.bufferPolicies = new BufferPolicies();
+		} else {
+			this.bufferPolicies.fillNullsWithDefaults();
+		}
 	}
 
 	public void update(EventBean[] events) {
@@ -34,6 +41,9 @@ public class EventBuffer {
 	}
 
 	public EventBean[] read() {
+		if (latestEvents.size() < 1) {
+			return null;
+		}
 		if (bufferPolicies.consumption.equals(BufferPolicies.CONST_CONSUMPTION_CONSUME)) {
 			switch (bufferPolicies.order) {
 			case BufferPolicies.CONST_ORDER_FIFO:

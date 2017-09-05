@@ -10,4 +10,12 @@ public class BufferPolicies {
 	public String consumption = CONST_CONSUMPTION_REUSE, order = CONST_ORDER_LIFO;
 	public int size = 1, lifespan = 0;
 
+	public void fillNullsWithDefaults() {
+		if (consumption == null) {
+			consumption = CONST_CONSUMPTION_REUSE;
+		}
+		if (order == null) {
+			order = CONST_ORDER_LIFO;
+		}
+	}
 }

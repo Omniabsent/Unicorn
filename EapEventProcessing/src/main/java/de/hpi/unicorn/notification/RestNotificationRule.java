@@ -152,7 +152,12 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 			json.put("processInstanceId", processInstanceId);
 
 			JSONObject jsonPVars = new JSONObject();
-			jsonPVars.putAll(processVariables);
+			for (Object mapKey : processVariables.keySet()) {
+				JSONObject varEntry = new JSONObject();
+				varEntry.put("value", processVariables.get(mapKey).toString());
+				varEntry.put("type", "String");
+				jsonPVars.put(mapKey.toString(), varEntry);
+			}
 			json.put("processVariables", jsonPVars);
 
 			return json;

@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import de.hpi.unicorn.EventProcessingPlatformWebservice;
+import de.hpi.unicorn.eventbuffer.BufferManager;
 import de.hpi.unicorn.eventbuffer.BufferPolicies;
 import de.hpi.unicorn.notification.NotificationRule;
 import de.hpi.unicorn.notification.NotificationRuleForQuery;
@@ -211,8 +212,13 @@ public class EventQueryRestWebservice {
 
 			return Response.ok(uuid).build();
 		} catch (EPException | JsonSyntaxException e) {
+			e.printStackTrace();
 			return Response.status(Response.Status.BAD_REQUEST).entity("Request Events failed: " + e.getMessage())
 					.type("text/plain").build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+					.entity("An internal Server error occurred: " + e.getMessage()).type("text/plain").build();
 		}
 	}
 
@@ -222,7 +228,16 @@ public class EventQueryRestWebservice {
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response unsubscribe(@PathParam("queryId") String queryId,
 			@PathParam("subscriptionId") String subscriptionId) {
-		return null;
+
+		try {
+			new EventProcessingPlatformWebservice().removeSubscription(subscriptionId);
+			return Response.ok().build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+					.entity("An internal Server error occurred: " + e.getMessage()).type("text/plain").build();
+		}
+
 	}
 
 	@DELETE
@@ -230,7 +245,16 @@ public class EventQueryRestWebservice {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response removeQuery(@PathParam("queryId") String queryId) {
-		return null;
+
+		try {
+			BufferManager.removeBuffer(queryId);
+			return Response.ok().build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+					.entity("An internal Server error occurred: " + e.getMessage()).type("text/plain").build();
+		}
+
 	}
 
 	/**
