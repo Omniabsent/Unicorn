@@ -48,6 +48,7 @@ import de.hpi.unicorn.event.attribute.AttributeTypeEnum;
 import de.hpi.unicorn.event.attribute.AttributeTypeTree;
 import de.hpi.unicorn.event.attribute.TypeTreeNode;
 import de.hpi.unicorn.eventbuffer.BufferManager;
+import de.hpi.unicorn.eventbuffer.BufferPolicies;
 import de.hpi.unicorn.eventbuffer.EventBuffer;
 import de.hpi.unicorn.eventhandling.Broker;
 import de.hpi.unicorn.exception.UnparsableException;
@@ -631,10 +632,10 @@ public class StreamProcessingAdapter implements Serializable {
 		return listener;
 	}
 
-	public BufferedLiveQueryListener addBufferedLiveQuery(final QueryWrapper liveQuery, String bufferId)
-			throws EPException {
+	public BufferedLiveQueryListener addBufferedLiveQuery(final QueryWrapper liveQuery, String bufferId,
+			BufferPolicies bufferPolicies) throws EPException {
 		// create and register buffer
-		EventBuffer buff = new EventBuffer(bufferId, liveQuery);
+		EventBuffer buff = new EventBuffer(bufferId, liveQuery, bufferPolicies);
 		BufferManager.addBuffer(buff);
 
 		// register listener

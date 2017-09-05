@@ -40,6 +40,7 @@ import com.espertech.esper.client.EventBean;
 import com.espertech.esper.client.soda.EPStatementObjectModel;
 
 import de.hpi.unicorn.esper.StreamProcessingAdapter;
+import de.hpi.unicorn.eventbuffer.BufferPolicies;
 import de.hpi.unicorn.monitoring.QueryMonitoringPoint;
 import de.hpi.unicorn.notification.NotificationRuleForQuery;
 import de.hpi.unicorn.notification.RestNotificationRule;
@@ -397,8 +398,8 @@ public class QueryWrapper extends Persistable {
 		return StreamProcessingAdapter.getInstance().addLiveQuery(this);
 	}
 
-	public LiveQueryListener addToEsperBuffered(String bufferId) throws EPException {
-		return StreamProcessingAdapter.getInstance().addBufferedLiveQuery(this, bufferId);
+	public LiveQueryListener addToEsperBuffered(String bufferId, BufferPolicies bp) throws EPException {
+		return StreamProcessingAdapter.getInstance().addBufferedLiveQuery(this, bufferId, bp);
 	}
 
 	/**

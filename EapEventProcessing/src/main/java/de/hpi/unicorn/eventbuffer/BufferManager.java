@@ -4,6 +4,7 @@ import java.util.LinkedList;
 
 import com.espertech.esper.client.EventBean;
 
+import de.hpi.unicorn.notification.NotificationRule;
 import de.hpi.unicorn.query.QueryWrapper;
 
 public class BufferManager {
@@ -35,6 +36,16 @@ public class BufferManager {
 
 	public static void update(EventBean[] events, QueryWrapper qw) {
 		getEventBuffer(qw).update(events);
+	}
+
+	public static void removeBuffer(String bufferId) {
+		System.out.println("(BufferManager) Removing buffer with id " + bufferId);
+		EventBuffer buff = getEventBuffer(bufferId);
+		bufferList.remove(buff);
+		for (NotificationRule r : buff.getQuery().getNotificationRulesForQuery()) {
+			r.remove();
+		}
+		buff.getQuery().remove();
 	}
 
 }

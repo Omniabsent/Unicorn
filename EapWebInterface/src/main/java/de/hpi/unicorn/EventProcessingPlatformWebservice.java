@@ -7,17 +7,25 @@
  *******************************************************************************/
 package de.hpi.unicorn;
 
+import java.io.Serializable;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
+import org.apache.xerces.dom.ElementImpl;
 import org.w3c.dom.Document;
 
 import com.espertech.esper.client.EPException;
+import com.espertech.esper.client.EventBean;
 
+import de.hpi.unicorn.application.rest.EventQueryRestWebservice;
 import de.hpi.unicorn.event.EapEvent;
 import de.hpi.unicorn.event.EapEventType;
+import de.hpi.unicorn.eventbuffer.BufferManager;
 import de.hpi.unicorn.eventhandling.Broker;
 import de.hpi.unicorn.exception.DuplicatedSchemaException;
 import de.hpi.unicorn.exception.EventTypeNotFoundException;
@@ -29,6 +37,7 @@ import de.hpi.unicorn.importer.xml.XSDParser;
 import de.hpi.unicorn.notification.NotificationMethod;
 import de.hpi.unicorn.notification.NotificationRuleForQuery;
 import de.hpi.unicorn.notification.RestNotificationRule;
+import de.hpi.unicorn.query.LiveQueryListener;
 import de.hpi.unicorn.query.QueryTypeEnum;
 import de.hpi.unicorn.query.QueryWrapper;
 import de.hpi.unicorn.transformation.TransformationRule;
@@ -210,10 +219,38 @@ public class EventProcessingPlatformWebservice {
 		return notificationRule;
 	}
 
-	public void registerBufferedQueryForRest(final String queryString, String bufferId) throws EPException {
-		final QueryWrapper query = new QueryWrapper("Automatic", queryString, QueryTypeEnum.LIVE);
-		query.addToEsperBuffered(bufferId);
+	public String registerBufferedQuery(final EventQueryRestWebservice.RegisterQueryCall queryInformation)
+			throws EPException {
+		final QueryWrapper query = new QueryWrapper("Automatic", queryInformation.eventQuery, QueryTypeEnum.LIVE);
+		String uuid = UUID.randomUUID().toString();
+		query.addToEsperBuffered(uuid, queryInformation.bufferPolicies);
 		query.save();
+		return uuid;
+	}
+
+	public String addSubscription(final EventQueryRestWebservice.SubscribeCall subscriptionInformation,
+			String queryId) {
+		// register new recipient
+		// causes nullpointer if no buffer exists for bufferId
+		QueryWrapper qw = BufferManager.getEventBuffer(queryId).getQuery();
+
+		EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
+		RestNotificationRule rule = service.addRestNotificationRecipient(qw, subscriptionInformation.postAddress);
+
+		// notify with events from buffer
+		EventBean[] latestEvent = BufferManager.getEventBuffer(queryId).read();
+		if (latestEvent != null) {
+			Map<Object, Serializable> map = new HashMap<Object, Serializable>();
+			final Object eventObject = latestEvent[0].getUnderlying();
+			if (eventObject instanceof ElementImpl) {
+				map = LiveQueryListener.convertEventToMap((ElementImpl) latestEvent[0].getUnderlying());
+			} else if (eventObject instanceof HashMap) {
+				map = (Map<Object, Serializable>) eventObject;
+			}
+			rule.trigger(map);
+		}
+
+		return rule.getUuid();
 	}
 
 	/**

@@ -1,9 +1,5 @@
 package de.hpi.unicorn.application.rest;
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -14,19 +10,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.xerces.dom.ElementImpl;
-
 import com.espertech.esper.client.EPException;
-import com.espertech.esper.client.EventBean;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import de.hpi.unicorn.EventProcessingPlatformWebservice;
-import de.hpi.unicorn.eventbuffer.BufferManager;
+import de.hpi.unicorn.eventbuffer.BufferPolicies;
 import de.hpi.unicorn.notification.NotificationRule;
 import de.hpi.unicorn.notification.NotificationRuleForQuery;
 import de.hpi.unicorn.notification.RestNotificationRule;
-import de.hpi.unicorn.query.LiveQueryListener;
 import de.hpi.unicorn.query.QueryWrapper;
 
 /**
@@ -162,20 +154,29 @@ public class EventQueryRestWebservice {
 		}
 	}
 
+	/**
+	 * Register a buffered query in the system. (without notification
+	 * recipients). Instantiates a buffer that will hold the latest query output
+	 * according to the bufferPolicies.
+	 * 
+	 * @param payloadJson:
+	 *            JSON (eventQuery[, bufferPolicies]) with
+	 *            bufferPolicies:(lifetime, consumption, size, order)
+	 * @return Response containing uuid of the query
+	 */
 	@POST
-	@Path("/EventBuffer")
+	@Path("/BufferedEventQuery")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
-	public Response createEventBuffer(String queryJson) {
+	public Response registerQuery(String payloadJson) {
 		// register query in esper without notificationPath
 		try {
 			Gson gson = new Gson();
-			CreateEventBufferCall callData = gson.fromJson(queryJson, CreateEventBufferCall.class);
+			RegisterQueryCall callData = gson.fromJson(payloadJson, RegisterQueryCall.class);
 			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
-			String uuid = callData.bufferId;
 
-			System.out.println("The following query will be buffered: " + callData.query);
-			service.registerBufferedQueryForRest(callData.query, callData.bufferId);
+			System.out.println("The following query will be buffered: " + callData.eventQuery);
+			String uuid = service.registerBufferedQuery(callData);
 
 			return Response.ok(uuid).build();
 		} catch (EPException | JsonSyntaxException e) {
@@ -184,43 +185,52 @@ public class EventQueryRestWebservice {
 		}
 	}
 
+	/**
+	 * Add a subscription to a query. Deliver the latest events from the buffer.
+	 * 
+	 * @param queryId
+	 * @param payloadJson:
+	 *            JSON (notificationPath) with
+	 *            notificationPath:(notificationAddress, processInstanceId,
+	 *            message-Name)
+	 * @return Response containing uuid of the subscription
+	 */
 	@POST
-	@Path("/EventBuffer/{bufferId}")
+	@Path("/BufferedEventQuery/{queryId}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
-	public Response requestEvents(@PathParam("bufferId") String bufferId, String queryJson) {
+	public Response subscribe(@PathParam("queryId") String queryId, String payloadJson) {
 		try {
 			Gson gson = new Gson();
-			RequestEventsCall callData = gson.fromJson(queryJson, RequestEventsCall.class);
+			SubscribeCall callData = gson.fromJson(payloadJson, SubscribeCall.class);
 
-			System.out.println(
-					"(RestAPI) delivering events from buffer " + bufferId + " to " + callData.notificationPath);
-
-			// register new recipient
-			// causes nullpointer if no buffer exists for bufferId
-			QueryWrapper qw = BufferManager.getEventBuffer(bufferId).getQuery();
+			System.out.println("(RestAPI) delivering events from buffer " + queryId + " to " + callData.postAddress);
 
 			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
-			RestNotificationRule rule = service.addRestNotificationRecipient(qw, callData.notificationPath);
+			String uuid = service.addSubscription(callData, queryId);
 
-			// notify with events from buffer
-			EventBean[] latestEvent = BufferManager.getEventBuffer(bufferId).read();
-			if (latestEvent != null) {
-				Map<Object, Serializable> map = new HashMap<Object, Serializable>();
-				final Object eventObject = latestEvent[0].getUnderlying();
-				if (eventObject instanceof ElementImpl) {
-					map = LiveQueryListener.convertEventToMap((ElementImpl) latestEvent[0].getUnderlying());
-				} else if (eventObject instanceof HashMap) {
-					map = (Map<Object, Serializable>) eventObject;
-				}
-				rule.trigger(map);
-			}
-
-			return Response.ok().build();
+			return Response.ok(uuid).build();
 		} catch (EPException | JsonSyntaxException e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Request Events failed: " + e.getMessage())
 					.type("text/plain").build();
 		}
+	}
+
+	@DELETE
+	@Path("/BufferedEventQuery/{queryId}/{subscriptionId}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
+	public Response unsubscribe(@PathParam("queryId") String queryId,
+			@PathParam("subscriptionId") String subscriptionId) {
+		return null;
+	}
+
+	@DELETE
+	@Path("/BufferedEventQuery/{queryId}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
+	public Response removeQuery(@PathParam("queryId") String queryId) {
+		return null;
 	}
 
 	/**
@@ -262,12 +272,13 @@ public class EventQueryRestWebservice {
 		}
 	}
 
-	private class CreateEventBufferCall {
-		public String query, bufferId;
+	public class RegisterQueryCall {
+		public String eventQuery;
+		public BufferPolicies bufferPolicies;
 	}
 
-	private class RequestEventsCall {
-		public String notificationPath;
+	public class SubscribeCall {
+		public String postAddress, processInstanceId, messageName;
 	}
 
 }
