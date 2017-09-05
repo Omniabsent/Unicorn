@@ -30,6 +30,7 @@ import com.espertech.esper.client.EventBean;
 
 import de.hpi.unicorn.EventProcessingPlatformWebservice;
 import de.hpi.unicorn.application.rest.EventQueryRestWebservice.RegisterQueryCall;
+import de.hpi.unicorn.application.rest.EventQueryRestWebservice.SubscribeCall;
 import de.hpi.unicorn.event.EapEvent;
 import de.hpi.unicorn.eventbuffer.BufferManager;
 import de.hpi.unicorn.eventbuffer.EventBuffer;
@@ -127,18 +128,23 @@ public class EventBufferTest extends JerseyTest {
 		assertTrue(getTestValue(eb.read()).equals("1.0"));
 
 		// Send a second event, see that the new event is in the buffer.
-		eventString = eventString.replace("05:32", "05:33");
 		eventString = eventString.replace("<TestValue>1.0</TestValue>", "<TestValue>2.0</TestValue>");
 		helperSendEvent();
 		assertTrue(eb.size() == 1);
 		assertTrue(getTestValue(eb.read()).equals("2.0"));
 
 		// Subscribe to the buffer. (in console: events delivered)
+		SubscribeCall subcall = new EventQueryRestWebservice().new SubscribeCall();
+		subcall.postAddress = "some-address";
+		subcall.messageName = "some-message";
+		subcall.processInstanceId = "12345";
+		String subId = service.addSubscription(subcall, queryId);
 
 		// Unsubscribe.
+		// service.removeSubscription(subId);
 
 		// Remove query.
-		BufferManager.removeBuffer(queryId);
+		// BufferManager.removeBuffer(queryId);
 	}
 
 	private String getTestValue(EventBean[] bean) {

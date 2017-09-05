@@ -27,9 +27,11 @@ import net.sf.json.JSONObject;
 @Entity
 @DiscriminatorValue("R")
 public class RestNotificationRule extends NotificationRuleForQuery {
+	public static final String CONST_SPLIT_CHARACTER = "$";
 
 	// Needed for REST Notifications
-	private String notificationPath;
+	// for camunda notifications: <address>||<prInstId>||<messageName>
+	protected String notificationPath;
 
 	/**
 	 * @param query
@@ -90,7 +92,6 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 	public boolean trigger(final Map<Object, Serializable> eventObject) {
 		try {
 			final JSONObject event = NotificationRuleUtils.toJSON(eventObject);
-			System.out.println("(RestNotificationRule) Notifying " + this.notificationPath + " with data " + event);
 			// final RestNotificationForQuery notification = new
 			// RestNotificationForQuery(event.toString(), this);
 			// no longer storing the notifications, as they were causing errors
@@ -100,15 +101,36 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 			// ever looks them up again, we should stop persisting these anyway.
 			// notification.save();
 
+			String payloadJson = "";
+			String notificationAddress = "";
+			if (this.notificationPath.contains(CONST_SPLIT_CHARACTER)) {
+				String[] pathComponents = this.notificationPath.split("[" + CONST_SPLIT_CHARACTER + "]");
+				// this is a notification for camunda
+				EventPostPayload epp = new EventPostPayload();
+				epp.processVariables = eventObject;
+				epp.processInstanceId = pathComponents[1];
+				epp.messageName = pathComponents[2];
+
+				notificationAddress = pathComponents[0];
+				payloadJson = epp.toJson().toString();
+			} else {
+				// original notification content
+				payloadJson = event.toString();
+				notificationAddress = this.notificationPath;
+			}
+
+			System.out.println("(RestNotificationRule) Notifying " + notificationAddress + " with data " + payloadJson);
+
 			Client client = ClientBuilder.newClient();
 			WebTarget target = client.target(this.notificationPath);
 
-			Response response = target.request().post(javax.ws.rs.client.Entity.json(event.toString()));
+			Response response = target.request().post(javax.ws.rs.client.Entity.json(payloadJson));
 			return response.getStatus() == 200;
 		} catch (UnsupportedJsonTransformation e) {
 			e.printStackTrace();
 		} catch (Exception e) {
 			System.out.println("(RestNotificationRule) failed: " + e.getMessage());
+			// e.printStackTrace();
 		}
 		return false;
 	}
@@ -118,5 +140,22 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 		String representation = "Notification for " + this.query;
 		representation += " for endpoint " + this.notificationPath;
 		return representation;
+	}
+
+	private class EventPostPayload {
+		public Map<Object, Serializable> processVariables;
+		public String messageName, processInstanceId;
+
+		public JSONObject toJson() {
+			JSONObject json = new JSONObject();
+			json.put("messageName", messageName);
+			json.put("processInstanceId", processInstanceId);
+
+			JSONObject jsonPVars = new JSONObject();
+			jsonPVars.putAll(processVariables);
+			json.put("processVariables", jsonPVars);
+
+			return json;
+		}
 	}
 }

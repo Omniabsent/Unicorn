@@ -235,7 +235,11 @@ public class EventProcessingPlatformWebservice {
 		QueryWrapper qw = BufferManager.getEventBuffer(queryId).getQuery();
 
 		EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
-		RestNotificationRule rule = service.addRestNotificationRecipient(qw, subscriptionInformation.postAddress);
+
+		String notificationPath = subscriptionInformation.postAddress + RestNotificationRule.CONST_SPLIT_CHARACTER
+				+ subscriptionInformation.processInstanceId + RestNotificationRule.CONST_SPLIT_CHARACTER
+				+ subscriptionInformation.messageName;
+		RestNotificationRule rule = service.addRestNotificationRecipient(qw, notificationPath);
 
 		// notify with events from buffer
 		EventBean[] latestEvent = BufferManager.getEventBuffer(queryId).read();
@@ -251,6 +255,11 @@ public class EventProcessingPlatformWebservice {
 		}
 
 		return rule.getUuid();
+	}
+
+	public void removeSubscription(String subscriptionId) {
+		final NotificationRuleForQuery notificationRule = NotificationRuleForQuery.findByUUID(subscriptionId);
+		notificationRule.remove();
 	}
 
 	/**
