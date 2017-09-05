@@ -127,8 +127,14 @@ public class EventBufferTest extends JerseyTest {
 		assertTrue(getTestValue(eb.read()).equals("1.0"));
 
 		// Send a second event, see that the new event is in the buffer.
+		eventString = eventString.replace("05:32", "05:33");
+		eventString = eventString.replace("<TestValue>1.0</TestValue>", "<TestValue>2.0</TestValue>");
+		helperSendEvent();
+		assertTrue(eb.size() == 1);
+		assertTrue(getTestValue(eb.read()).equals("2.0"));
 
 		// Subscribe to the buffer. (in console: events delivered)
+
 		// Unsubscribe.
 
 		// Remove query.

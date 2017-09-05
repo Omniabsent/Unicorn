@@ -22,10 +22,33 @@ public class EventBuffer {
 	public void update(EventBean[] events) {
 		System.out.println("(EventBuffer) storing new data for query " + query.getID());
 		latestEvents.add(events);
+		if (latestEvents.size() > bufferPolicies.size) {
+			switch (bufferPolicies.order) {
+			case BufferPolicies.CONST_ORDER_FIFO:
+				latestEvents.removeLast();
+				break;
+			default:
+				latestEvents.removeFirst();
+			}
+		}
 	}
 
 	public EventBean[] read() {
-		return latestEvents.get(0);
+		if (bufferPolicies.consumption.equals(BufferPolicies.CONST_CONSUMPTION_CONSUME)) {
+			switch (bufferPolicies.order) {
+			case BufferPolicies.CONST_ORDER_FIFO:
+				return latestEvents.removeFirst();
+			default:
+				return latestEvents.removeLast();
+			}
+		} else {
+			switch (bufferPolicies.order) {
+			case BufferPolicies.CONST_ORDER_FIFO:
+				return latestEvents.getFirst();
+			default:
+				return latestEvents.getLast();
+			}
+		}
 	}
 
 	/* Getters & Setters */

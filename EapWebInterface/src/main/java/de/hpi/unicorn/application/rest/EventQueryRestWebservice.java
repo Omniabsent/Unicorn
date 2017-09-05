@@ -274,7 +274,7 @@ public class EventQueryRestWebservice {
 
 	public class RegisterQueryCall {
 		public String eventQuery;
-		public BufferPolicies bufferPolicies;
+		public BufferPolicies bufferPolicies = new BufferPolicies();
 	}
 
 	public class SubscribeCall {
