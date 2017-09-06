@@ -176,7 +176,8 @@ public class EventQueryRestWebservice {
 			RegisterQueryCall callData = gson.fromJson(payloadJson, RegisterQueryCall.class);
 			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
 
-			System.out.println("The following query will be buffered: " + callData.eventQuery);
+			System.out
+					.println("(Unicorn.RestWebservice) The following query shall be buffered: " + callData.eventQuery);
 			String uuid = service.registerBufferedQuery(callData);
 
 			return Response.ok(uuid).build();
@@ -205,8 +206,6 @@ public class EventQueryRestWebservice {
 			Gson gson = new Gson();
 			SubscribeCall callData = gson.fromJson(payloadJson, SubscribeCall.class);
 
-			System.out.println("(RestAPI) delivering events from buffer " + queryId + " to " + callData.postAddress);
-
 			EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
 			String uuid = service.addSubscription(callData, queryId);
 
@@ -228,7 +227,7 @@ public class EventQueryRestWebservice {
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response unsubscribe(@PathParam("queryId") String queryId,
 			@PathParam("subscriptionId") String subscriptionId) {
-
+		System.out.println("(EventQueryRestWebservice) Received call to remove subscription " + subscriptionId);
 		try {
 			new EventProcessingPlatformWebservice().removeSubscription(subscriptionId);
 			return Response.ok().build();

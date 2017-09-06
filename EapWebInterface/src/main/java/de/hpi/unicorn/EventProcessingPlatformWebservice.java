@@ -231,7 +231,7 @@ public class EventProcessingPlatformWebservice {
 	public String addSubscription(final EventQueryRestWebservice.SubscribeCall subscriptionInformation,
 			String queryId) {
 		// register new recipient
-		// causes nullpointer if no buffer exists for bufferId
+		// TODO: causes nullpointer if no buffer exists for bufferId
 		QueryWrapper qw = BufferManager.getEventBuffer(queryId).getQuery();
 
 		EventProcessingPlatformWebservice service = new EventProcessingPlatformWebservice();
@@ -244,6 +244,10 @@ public class EventProcessingPlatformWebservice {
 		// notify with events from buffer
 		EventBean[] latestEvent = BufferManager.getEventBuffer(queryId).read();
 		if (latestEvent != null) {
+			System.out.println("(EventProcessingPlatformWebservice) delivering events from buffer " + queryId + " to "
+					+ subscriptionInformation.postAddress + " > (instance) "
+					+ subscriptionInformation.processInstanceId);
+
 			Map<Object, Serializable> map = new HashMap<Object, Serializable>();
 			final Object eventObject = latestEvent[0].getUnderlying();
 			if (eventObject instanceof ElementImpl) {
@@ -252,6 +256,8 @@ public class EventProcessingPlatformWebservice {
 				map = (Map<Object, Serializable>) eventObject;
 			}
 			rule.trigger(map);
+		} else {
+			System.out.println("(EventProcessingPlatformWebservice) no events to be delivered from buffer.");
 		}
 
 		return rule.getUuid();

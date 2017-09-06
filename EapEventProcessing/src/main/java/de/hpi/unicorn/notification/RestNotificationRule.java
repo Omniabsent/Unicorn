@@ -122,7 +122,7 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 			System.out.println("(RestNotificationRule) Notifying " + notificationAddress + " with data " + payloadJson);
 
 			Client client = ClientBuilder.newClient();
-			WebTarget target = client.target(this.notificationPath);
+			WebTarget target = client.target(notificationAddress);
 
 			Response response = target.request().post(javax.ws.rs.client.Entity.json(payloadJson));
 			return response.getStatus() == 200;
