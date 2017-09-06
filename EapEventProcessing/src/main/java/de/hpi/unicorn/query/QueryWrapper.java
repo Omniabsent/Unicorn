@@ -442,6 +442,14 @@ public class QueryWrapper extends Persistable {
 		for (final NotificationRuleForQuery notification : this.getNotificationRulesForQuery()) {
 			notification.remove();
 		}
+
+		// remove rest notification rules
+		for (final NotificationRuleForQuery notification : this.getRestNotificationRules()) {
+			System.out.println("(Unicorn.QueryWrapper) removing notification with id " + notification.getUuid() + " | "
+					+ notification.getID());
+			notification.remove();
+		}
+
 		// remove monitoring points
 		for (final QueryMonitoringPoint point : QueryMonitoringPoint.findByQuery(this)) {
 			point.remove();
