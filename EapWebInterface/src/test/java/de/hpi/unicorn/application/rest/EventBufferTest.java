@@ -1,12 +1,12 @@
 package de.hpi.unicorn.application.rest;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.client.Entity;
@@ -34,9 +34,12 @@ import de.hpi.unicorn.application.rest.EventQueryRestWebservice.SubscribeCall;
 import de.hpi.unicorn.event.EapEvent;
 import de.hpi.unicorn.eventbuffer.BufferManager;
 import de.hpi.unicorn.eventbuffer.EventBuffer;
+import de.hpi.unicorn.eventhandling.Broker;
 import de.hpi.unicorn.exception.DuplicatedSchemaException;
 import de.hpi.unicorn.exception.UnparsableException;
+import de.hpi.unicorn.importer.xml.XMLParser;
 import de.hpi.unicorn.query.LiveQueryListener;
+import net.sf.json.JSONObject;
 
 /**
  *
@@ -87,23 +90,51 @@ public class EventBufferTest extends JerseyTest {
 
 	@Override
 	protected Application configure() {
-		return new ResourceConfig(EventRestWebservice.class);
+		return new ResourceConfig(EventQueryRestWebservice.class);
 	}
 
 	@Test
-	public void testPostEvent() throws ParserConfigurationException, SAXException, IOException {
-		String url = "REST/Event";
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document doc = db.parse(new InputSource(new StringReader(eventString)));
-		Response response = target(url).request().post(Entity.xml(doc));
+	public void testWorkflowUsingREST() throws ParserConfigurationException, SAXException, IOException {
+		// register a query
+		String url = "REST/BufferedEventQuery/";
+		Response response = target(url).request().post(Entity.json("{\"eventQuery\":\"Select * from TestEvent\"}"));
 
-		try {
-			int eventId = response.readEntity(int.class);
-			assertNotNull(EapEvent.findByID(eventId));
-		} catch (Exception e) {
-			assert (false);
-		}
+		String queryId = response.readEntity(String.class);
+
+		// subscribe
+		url += queryId;
+		JSONObject jsonPayload = new JSONObject();
+		jsonPayload.put("postAddress", "localhost");
+		jsonPayload.put("messageName", "my-message");
+		jsonPayload.put("processInstanceId", "12345");
+		response = target(url).request().post(Entity.json(jsonPayload.toString()));
+		String subscriptionId = response.readEntity(String.class);
+
+		// unsubscribe
+		url = "REST/BufferedEventQuery/subscriptions/" + subscriptionId;
+		target(url).request().delete();
+
+		// delete the query
+		url = "REST/BufferedEventQuery/" + queryId;
+		target(url).request().delete();
+	}
+
+	@Test
+	public void testRemoveQueryWhenNotificationsExist() {
+		// register query
+		RegisterQueryCall queryInformation = new EventQueryRestWebservice().new RegisterQueryCall();
+		queryInformation.eventQuery = "select * from TestEvent";
+		String queryId = service.registerBufferedQuery(queryInformation);
+
+		// subscribe
+		SubscribeCall subcall = new EventQueryRestWebservice().new SubscribeCall();
+		subcall.postAddress = "some-address";
+		subcall.messageName = "some-message";
+		subcall.processInstanceId = "12345";
+		String subId = service.addSubscription(subcall, queryId);
+
+		// remove query
+		BufferManager.removeBuffer(queryId);
 	}
 
 	/**
@@ -111,9 +142,11 @@ public class EventBufferTest extends JerseyTest {
 	 * event. Check that it is in the buffer. Send a second event, see that the
 	 * new event is in the buffer. Subscribe to the buffer. (in console: events
 	 * delivered) Unsubscribe. Remove query.
+	 * 
+	 * @throws InterruptedException
 	 */
 	@Test
-	public void testSimpleBufferedQuery() {
+	public void testSimpleBufferedQuery() throws InterruptedException {
 		System.out.println("STARTING TEST: testSimpleBufferedQuery");
 		// Create a simple buffered query (no bufferPolicies provided).
 		RegisterQueryCall queryInformation = new EventQueryRestWebservice().new RegisterQueryCall();
@@ -140,11 +173,14 @@ public class EventBufferTest extends JerseyTest {
 		subcall.processInstanceId = "12345";
 		String subId = service.addSubscription(subcall, queryId);
 
+		System.out.println("\nTest waiting 3 seconds...\n");
+		Thread.sleep(3000); // allow to async deliver events
+
 		// Unsubscribe.
-		// service.removeSubscription(subId);
+		service.removeSubscription(subId);
 
 		// Remove query.
-		// BufferManager.removeBuffer(queryId);
+		BufferManager.removeBuffer(queryId);
 	}
 
 	private String getTestValue(EventBean[] bean) {
@@ -159,18 +195,20 @@ public class EventBufferTest extends JerseyTest {
 		return map.get("TestValue").toString();
 	}
 
-	private Response helperSendEvent() {
+	private void helperSendEvent() {
 		try {
 			String url = "REST/Event";
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			Document doc = db.parse(new InputSource(new StringReader(eventString)));
-			Response response = target(url).request().post(Entity.xml(doc));
-			return response;
+
+			List<EapEvent> events = XMLParser.generateEventsFromDoc(doc);
+			EapEvent newEvent = events.get(0);
+			Broker.getEventImporter().importEvent(newEvent);
+
 		} catch (Exception e) {
 
 		}
 
-		return null;
 	}
 }
