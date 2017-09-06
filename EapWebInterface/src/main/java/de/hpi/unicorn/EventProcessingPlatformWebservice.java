@@ -23,6 +23,7 @@ import com.espertech.esper.client.EPException;
 import com.espertech.esper.client.EventBean;
 
 import de.hpi.unicorn.application.rest.EventQueryRestWebservice;
+import de.hpi.unicorn.application.rest.EventQueryRestWebservice.SubscribeCall;
 import de.hpi.unicorn.event.EapEvent;
 import de.hpi.unicorn.event.EapEventType;
 import de.hpi.unicorn.eventbuffer.BufferManager;
@@ -241,30 +242,64 @@ public class EventProcessingPlatformWebservice {
 				+ subscriptionInformation.messageName;
 		RestNotificationRule rule = service.addRestNotificationRecipient(qw, notificationPath);
 
-		// notify with events from buffer
-		EventBean[] latestEvent = BufferManager.getEventBuffer(queryId).read();
-		if (latestEvent != null) {
-			System.out.println("(EventProcessingPlatformWebservice) delivering events from buffer " + queryId + " to "
-					+ subscriptionInformation.postAddress + " > (instance) "
-					+ subscriptionInformation.processInstanceId);
+		System.out.println("(Unicorn.EventProcessingPlatformWebservice) added subscription: " + rule.getUuid());
 
-			Map<Object, Serializable> map = new HashMap<Object, Serializable>();
-			final Object eventObject = latestEvent[0].getUnderlying();
-			if (eventObject instanceof ElementImpl) {
-				map = LiveQueryListener.convertEventToMap((ElementImpl) latestEvent[0].getUnderlying());
-			} else if (eventObject instanceof HashMap) {
-				map = (Map<Object, Serializable>) eventObject;
-			}
-			rule.trigger(map);
-		} else {
-			System.out.println("(EventProcessingPlatformWebservice) no events to be delivered from buffer.");
-		}
+		new ASyncDeliverBufferedEvents(rule, subscriptionInformation, queryId).start();
 
 		return rule.getUuid();
 	}
 
+	private class ASyncDeliverBufferedEvents extends Thread {
+		RestNotificationRule rule;
+		EventQueryRestWebservice.SubscribeCall subscriptionInformation;
+		String queryId;
+
+		public ASyncDeliverBufferedEvents(RestNotificationRule rule2, SubscribeCall subscriptionInformation2,
+				String queryId2) {
+			super();
+			rule = rule2;
+			subscriptionInformation = subscriptionInformation2;
+			queryId = queryId2;
+		}
+
+		public void run() {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			try {
+				// notify with events from buffer
+				EventBean[] latestEvent = BufferManager.getEventBuffer(queryId).read();
+				if (latestEvent != null) {
+					System.out.println("(EventProcessingPlatformWebservice) delivering events from buffer " + queryId
+							+ " to " + subscriptionInformation.postAddress + " > (instance) "
+							+ subscriptionInformation.processInstanceId);
+
+					Map<Object, Serializable> map = new HashMap<Object, Serializable>();
+					final Object eventObject = latestEvent[0].getUnderlying();
+					if (eventObject instanceof ElementImpl) {
+						map = LiveQueryListener.convertEventToMap((ElementImpl) latestEvent[0].getUnderlying());
+					} else if (eventObject instanceof HashMap) {
+						map = (Map<Object, Serializable>) eventObject;
+					}
+					rule.trigger(map);
+				} else {
+					System.out.println("(EventProcessingPlatformWebservice) no events to be delivered from buffer.");
+				}
+			} catch (Exception e) {
+				System.out.println(
+						"(Unicorn.ASyncDeliverBufferedEvents) couldn't deliver events (maybe the query was deleted in the meantime). message: "
+								+ e.getMessage());
+			}
+		}
+
+	}
+
 	public void removeSubscription(String subscriptionId) {
 		final NotificationRuleForQuery notificationRule = NotificationRuleForQuery.findByUUID(subscriptionId);
+		System.out.println("removing notificationRule " + notificationRule.getID());
 		notificationRule.remove();
 	}
 

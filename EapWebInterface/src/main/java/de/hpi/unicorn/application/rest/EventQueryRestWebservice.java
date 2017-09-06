@@ -9,6 +9,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import com.espertech.esper.client.EPException;
 import com.google.gson.Gson;
@@ -222,8 +223,7 @@ public class EventQueryRestWebservice {
 	}
 
 	@DELETE
-	@Path("/BufferedEventQuery/{queryId}/{subscriptionId}")
-	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/BufferedEventQuery/subscriptions/{subscriptionId}")
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response unsubscribe(@PathParam("queryId") String queryId,
 			@PathParam("subscriptionId") String subscriptionId) {
@@ -241,13 +241,17 @@ public class EventQueryRestWebservice {
 
 	@DELETE
 	@Path("/BufferedEventQuery/{queryId}")
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response removeQuery(@PathParam("queryId") String queryId) {
-
+		System.out.println("(EventQueryRestWebservice) Received call to remove query " + queryId);
 		try {
-			BufferManager.removeBuffer(queryId);
-			return Response.ok().build();
+			if (BufferManager.getEventBuffer(queryId) == null) {
+				return Response.status(Status.NOT_FOUND).build();
+			} else {
+				BufferManager.removeBuffer(queryId);
+				return Response.ok().build();
+			}
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
