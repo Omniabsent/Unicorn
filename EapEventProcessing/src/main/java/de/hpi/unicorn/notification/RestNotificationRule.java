@@ -154,8 +154,15 @@ public class RestNotificationRule extends NotificationRuleForQuery {
 			JSONObject jsonPVars = new JSONObject();
 			for (Object mapKey : processVariables.keySet()) {
 				JSONObject varEntry = new JSONObject();
-				varEntry.put("value", processVariables.get(mapKey).toString());
-				varEntry.put("type", "String");
+				String val = processVariables.get(mapKey).toString();
+				try {
+					Double dVal = Double.parseDouble(val);
+					varEntry.put("value", dVal);
+					varEntry.put("type", "Double");
+				} catch (Exception e) {
+					varEntry.put("value", val);
+					varEntry.put("type", "String");
+				}
 				jsonPVars.put(mapKey.toString(), varEntry);
 			}
 			json.put("processVariables", jsonPVars);
